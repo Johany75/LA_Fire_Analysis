@@ -3,7 +3,7 @@ var roi = ee.FeatureCollection("projects/abujohani123/assets/Los_Angles_new");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var dataset = ee.ImageCollection("MODIS/061/MCD19A2_GRANULES")
   .select('Optical_Depth_047')  
-  .filterDate('2024-12-12', '2025-01-06')
+  .filterDate('2024-12-22', '2025-01-06')
   .filterBounds(roi);
 
 print('Number of images in the dataset for Los Angeles:', dataset.size());
