@@ -1,0 +1,61 @@
+var beforeStart = '2024-12-12';
+var beforeEnd = '2025-01-05';
+
+var duringStart = '2025-01-06';
+var duringEnd = '2025-01-30';
+
+var afterStart = '2025-01-31';
+var afterEnd = '2025-02-10';
+
+var no2Collection = ee.ImageCollection("COPERNICUS/S5P/NRTI/L3_NO2")
+  .select('NO2_column_number_density')
+  .filterBounds(studyArea);
+
+function getNO2Mean(start, end) {
+  return no2Collection.filterDate(start, end).mean().clip(studyArea);
+}
+
+var no2Before = getNO2Mean(beforeStart, beforeEnd);
+var no2During = getNO2Mean(duringStart, duringEnd);
+var no2After = getNO2Mean(afterStart, afterEnd);
+
+var visParams = {
+  min: 0,
+  max: 0.0003,
+  palette: ['blue', 'green', 'yellow', 'orange', 'red']
+};
+
+
+Map.centerObject(studyArea, 8);
+Map.addLayer(no2Before, visParams, 'NO2 Before Fire');
+Map.addLayer(no2During, visParams, 'NO2 During Fire');
+Map.addLayer(no2After, visParams, 'NO2 After Fire');
+Map.addLayer(studyArea, {color: 'white'}, 'Study Area');
+
+
+
+Export.image.toDrive({
+  image: no2Before,
+  description: 'NO2_Before_Fire',
+  scale: 1000,
+  region: studyArea,
+  fileFormat: 'GeoTIFF'
+});
+
+Export.image.toDrive({
+  image: no2During,
+  description: 'NO2_During_Fire',
+  scale: 1000,
+  region: studyArea,
+  fileFormat: 'GeoTIFF'
+});
+
+Export.image.toDrive({
+  image: no2After,
+  description: 'NO2_After_Fire',
+  scale: 1000,
+  region: studyArea,
+  fileFormat: 'GeoTIFF'
+});
+
+
