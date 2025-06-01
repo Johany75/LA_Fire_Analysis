@@ -1,0 +1,59 @@
+/**** Start of imports. If edited, may not auto-convert in the playground. ****/
+var studyArea = ee.FeatureCollection("projects/abujohani123/assets/Los_Angles_new");
+/***** End of imports. If edited, may not auto-convert in the playground. *****/
+var beforeStart = '2024-12-22';
+var beforeEnd = '2025-01-05';
+
+var duringStart = '2025-01-06';
+var duringEnd = '2025-01-30';
+
+var afterStart = '2025-01-31';
+var afterEnd = '2025-02-10';
+
+var coCollection = ee.ImageCollection("COPERNICUS/S5P/NRTI/L3_CO")
+  .select('CO_column_number_density')
+  .filterBounds(studyArea);
+
+function getCOMean(start, end) {
+  return coCollection.filterDate(start, end).mean().clip(studyArea);
+}
+
+var coBefore = getCOMean(beforeStart, beforeEnd);
+var coDuring = getCOMean(duringStart, duringEnd);
+var coAfter = getCOMean(afterStart, afterEnd);
+
+var visParams = {
+  min: 0,
+  max: 0.05,  
+  palette: ['blue', 'green', 'yellow', 'orange', 'red']
+};
+
+Map.centerObject(studyArea, 8);
+Map.addLayer(coBefore, visParams, 'CO Before Fire');
+Map.addLayer(coDuring, visParams, 'CO During Fire');
+Map.addLayer(coAfter, visParams, 'CO After Fire');
+Map.addLayer(studyArea, {color: 'white'}, 'Study Area');
+
+Export.image.toDrive({
+  image: coBefore,
+  description: 'CO_Before_Fire',
+  scale: 1000,
+  region: studyArea,
+  fileFormat: 'GeoTIFF'
+});
+
+Export.image.toDrive({
+  image: coDuring,
+  description: 'CO_During_Fire',
+  scale: 1000,
+  region: studyArea,
+  fileFormat: 'GeoTIFF'
+});
+
+Export.image.toDrive({
+  image: coAfter,
+  description: 'CO_After_Fire',
+  scale: 1000,
+  region: studyArea,
+  fileFormat: 'GeoTIFF'
+});
