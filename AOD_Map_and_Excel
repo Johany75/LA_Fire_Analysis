@@ -15,8 +15,8 @@ var scaledDataset = dataset.map(function(image) {
 var average_aod = scaledDataset.reduce(ee.Reducer.mean()).clip(roi);
 
 var band_viz = {
-  min: 0.0,   // Clean air
-  max: 0.5,   // High pollution
+  min: 0.0,   
+  max: 0.5,   
   palette: ['black', 'blue', 'purple', 'cyan', 'green', 'yellow', 'red']
 };
 
