@@ -1,0 +1,86 @@
+/**** Start of imports. If edited, may not auto-convert in the playground. ****/
+var studyArea = ee.FeatureCollection("projects/abujohani123/assets/Los_Angles_new");
+/***** End of imports. If edited, may not auto-convert in the playground. *****/
+var beforeStart = '2024-12-30';
+var beforeEnd = '2025-01-06';
+
+var duringStart = '2025-01-06';
+var duringEnd = '2025-01-31';
+
+var afterStart = '2025-01-31';
+var afterEnd = '2025-02-10';
+
+var ozoneCollection = ee.ImageCollection("COPERNICUS/S5P/NRTI/L3_O3")
+  .select('O3_column_number_density')
+  .filterBounds(studyArea);
+
+function getMeanOzone(start, end) {
+  return ozoneCollection.filterDate(start, end).mean().clip(studyArea);
+}
+
+var beforeOzone = getMeanOzone(beforeStart, beforeEnd);
+var duringOzone = getMeanOzone(duringStart, duringEnd);
+var afterOzone = getMeanOzone(afterStart, afterEnd);
+
+var ozoneVis = {
+  min: 0.1,
+  max: 0.25,
+  palette: ['blue', 'green', 'yellow', 'orange', 'red']
+};
+
+Map.centerObject(studyArea, 6);
+Map.addLayer(beforeOzone, ozoneVis, 'O₃ Before Wildfire');
+Map.addLayer(duringOzone, ozoneVis, 'O₃ During Wildfire');
+Map.addLayer(afterOzone, ozoneVis, 'O₃ After Wildfire');
+
+function getDateList(startDate, endDate) {
+  var start = ee.Date(startDate);
+  var end = ee.Date(endDate);
+  var days = end.difference(start, 'day').subtract(1);
+  return ee.List.sequence(0, days).map(function(day) {
+    return start.advance(day, 'day').format('YYYY-MM-dd');
+  });
+}
+
+function extractOzoneData(dates, period) {
+  return dates.map(function(date) {
+    var dailyOzone = ozoneCollection
+      .filterDate(date, ee.Date(date).advance(1, 'day'))
+      .mean()
+      .clip(studyArea);
+
+    var meanOzone = dailyOzone.reduceRegion({
+      reducer: ee.Reducer.mean(),
+      geometry: studyArea,
+      scale: 1000,
+      bestEffort: true
+    }).get('O3_column_number_density');
+
+    return ee.Feature(null, {
+      'Date': date,
+      'Period': period,
+      'Mean_O3': meanOzone
+    });
+  });
+}
+
+
+var beforeDates = getDateList(beforeStart, beforeEnd);
+var duringDates = getDateList(duringStart, duringEnd);
+var afterDates = getDateList(afterStart, afterEnd);
+
+var beforeData = extractOzoneData(beforeDates, 'Before');
+var duringData = extractOzoneData(duringDates, 'During');
+var afterData = extractOzoneData(afterDates, 'After');
+
+var allOzoneData = ee.FeatureCollection(beforeData)
+  .merge(ee.FeatureCollection(duringData))
+  .merge(ee.FeatureCollection(afterData));
+
+
+Export.table.toDrive({
+  collection: allOzoneData,
+  description: 'Daily_Ozone_Analysis',
+  fileFormat: 'CSV',
+  selectors: ['Date', 'Period', 'Mean_O3']
+});
