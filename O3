@@ -1,14 +1,14 @@
 /**** Start of imports. If edited, may not auto-convert in the playground. ****/
 var studyArea = ee.FeatureCollection("projects/abujohani123/assets/Los_Angles_new");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
-var beforeStart = '2024-12-30';
+var beforeStart = '2024-12-22';
 var beforeEnd = '2025-01-06';
 
 var duringStart = '2025-01-06';
 var duringEnd = '2025-01-31';
 
 var afterStart = '2025-01-31';
-var afterEnd = '2025-02-10';
+var afterEnd = '2025-02-11';
 
 var ozoneCollection = ee.ImageCollection("COPERNICUS/S5P/NRTI/L3_O3")
   .select('O3_column_number_density')
@@ -32,6 +32,35 @@ Map.centerObject(studyArea, 6);
 Map.addLayer(beforeOzone, ozoneVis, 'O₃ Before Wildfire');
 Map.addLayer(duringOzone, ozoneVis, 'O₃ During Wildfire');
 Map.addLayer(afterOzone, ozoneVis, 'O₃ After Wildfire');
+
+
+Export.image.toDrive({
+  image: beforeOzone,
+  description: 'O3_Before_Wildfire',
+  scale: 1000,
+  region: studyArea,
+  fileFormat: 'GeoTIFF',
+  maxPixels: 1e13
+});
+
+Export.image.toDrive({
+  image: duringOzone,
+  description: 'O3_During_Wildfire',
+  scale: 1000,
+  region: studyArea,
+  fileFormat: 'GeoTIFF',
+  maxPixels: 1e13
+});
+
+Export.image.toDrive({
+  image: afterOzone,
+  description: 'O3_After_Wildfire',
+  scale: 1000,
+  region: studyArea,
+  fileFormat: 'GeoTIFF',
+  maxPixels: 1e13
+});
+
 
 function getDateList(startDate, endDate) {
   var start = ee.Date(startDate);
@@ -63,7 +92,6 @@ function extractOzoneData(dates, period) {
     });
   });
 }
-
 
 var beforeDates = getDateList(beforeStart, beforeEnd);
 var duringDates = getDateList(duringStart, duringEnd);
