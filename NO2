@@ -1,3 +1,6 @@
+/**** Start of imports. If edited, may not auto-convert in the playground. ****/
+var studyArea = ee.FeatureCollection("projects/abujohani123/assets/Los_Angles_new");
+/***** End of imports. If edited, may not auto-convert in the playground. *****/
 var beforeStart = '2024-12-12';
 var beforeEnd = '2025-01-05';
 
