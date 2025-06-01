@@ -1,0 +1,65 @@
+/**** Start of imports. If edited, may not auto-convert in the playground. ****/
+var studyArea = ee.FeatureCollection("projects/abujohani123/assets/Los_Angles_new");
+/***** End of imports. If edited, may not auto-convert in the playground. *****/
+var beforeStart = '2024-12-12';
+var beforeEnd = '2025-01-06';
+
+var duringStart = '2025-01-06';
+var duringEnd = '2025-01-31';
+
+var afterStart = '2025-01-31';
+var afterEnd = '2025-02-11';
+
+var coCollection = ee.ImageCollection("COPERNICUS/S5P/NRTI/L3_CO")
+  .select('CO_column_number_density')
+  .filterBounds(studyArea);
+
+function getDateList(startDate, endDate) {
+  var start = ee.Date(startDate);
+  var end = ee.Date(endDate);
+  var dates = ee.List.sequence(0, end.difference(start, 'day').subtract(1))
+    .map(function(day) {
+      return start.advance(day, 'day').format('YYYY-MM-dd');
+    });
+  return dates;
+}
+
+function extractCOData(dates, period) {
+  return dates.map(function(date) {
+    var coImage = coCollection
+      .filterDate(date, ee.Date(date).advance(1, 'day'))
+      .mean()  
+      .clip(studyArea);
+
+    var meanCO = coImage.reduceRegion({
+      reducer: ee.Reducer.mean(),  
+      geometry: studyArea,
+      scale: 1000,
+      bestEffort: true
+    }).get('CO_column_number_density');
+
+    return ee.Feature(null, {
+      'Date': date,
+      'Period': period,
+      'Mean_CO': meanCO  
+    });
+  });
+}
+
+var beforeDates = getDateList(beforeStart, beforeEnd);
+var duringDates = getDateList(duringStart, duringEnd);
+var afterDates = getDateList(afterStart, afterEnd);
+
+var beforeData = extractCOData(beforeDates, 'Before');
+var duringData = extractCOData(duringDates, 'During');
+var afterData = extractCOData(afterDates, 'After');
+
+var allCOData = ee.FeatureCollection(beforeData)
+  .merge(ee.FeatureCollection(duringData))
+  .merge(ee.FeatureCollection(afterData));
+  
+Export.table.toDrive({
+  collection: allCOData,
+  description: 'Daily_Mean_CO_Analysis',
+  fileFormat: 'CSV'
+});
