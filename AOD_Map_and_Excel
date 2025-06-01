@@ -1,0 +1,61 @@
+/**** Start of imports. If edited, may not auto-convert in the playground. ****/
+var roi = ee.FeatureCollection("projects/abujohani123/assets/Los_Angles_new");
+/***** End of imports. If edited, may not auto-convert in the playground. *****/
+var dataset = ee.ImageCollection("MODIS/061/MCD19A2_GRANULES")
+  .select('Optical_Depth_047')  
+  .filterDate('2024-12-12', '2025-01-06')
+  .filterBounds(roi);
+
+print('Number of images in the dataset for Los Angeles:', dataset.size());
+
+var scaledDataset = dataset.map(function(image) {
+  return image.multiply(0.001).copyProperties(image, ['system:time_start']);
+});
+
+var average_aod = scaledDataset.reduce(ee.Reducer.mean()).clip(roi);
+
+var band_viz = {
+  min: 0.0,   // Clean air
+  max: 0.5,   // High pollution
+  palette: ['black', 'blue', 'purple', 'cyan', 'green', 'yellow', 'red']
+};
+
+Map.centerObject(roi, 9);
+Map.addLayer(average_aod, band_viz, 'Mean AOD (Scaled) Los Angeles');
+
+
+Export.image.toDrive({
+  image: average_aod,
+  description: 'LosAngeles_Mean_AOD_2024',
+  scale: 1000,
+  region: roi,
+  fileFormat: 'GeoTIFF',
+  maxPixels: 1e9
+});
+
+
+var getAODMean = function(img) {
+  var meanDict = img.reduceRegion({
+    reducer: ee.Reducer.mean(),
+    geometry: roi,
+    scale: 1000,
+    maxPixels: 1e9
+  });
+  var date = ee.Date(img.get('system:time_start')).format('YYYY-MM-dd');
+  return ee.Feature(null, {
+    'date': date,
+    'AOD_mean': meanDict.get('Optical_Depth_047')
+  });
+};
+
+var dailyData = scaledDataset.map(getAODMean);
+
+
+Export.table.toDrive({
+  collection: dailyData,
+  description: 'LosAngeles_Daily_AOD_Mean_2024',
+  fileFormat: 'CSV',
+  selectors: ['date', 'AOD_mean']
+});
+
+print('Sample Daily AOD Data for Los Angeles:', dailyData.limit(10));
